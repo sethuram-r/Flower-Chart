@@ -1,18 +1,6 @@
 <!doctype html>
 <html class="no-js" lang="">
 
-<head>
-    <style>
-        polyline {
-            opacity: .3;
-            stroke: grey;
-            stroke-width: 2px;
-            fill: none;
-        }
-
-    </style>
-</head>
-
 <body>
 
 <div class="start">
@@ -20,8 +8,8 @@
 <div class="start2"></div>
 
 
-<script src="node_modules/d3/dist/d3.js">
-</script>
+<!--<script src="node_modules/d3/dist/d3.js"/>-->
+<script src="https://d3js.org/d3.v5.js"></script>
 <script>
 
 
@@ -30,38 +18,41 @@
         let margin = {top: 20, right: 10, bottom: 20, left: 10};
         let width = 1000;
         let height = 1000;
-        let chartWidth = width - margin.left - margin.right
-        let chartHeight = height - margin.top - margin.bottom;
-        let colorScheme = d3.interpolatePuRd
-        let colorSchemeValue = 0.6
+        let colorScheme = d3.interpolatePuRd;
+        let colorSchemeValue = 0.6;
 
 
         function chart(selection) {
 
-            let data = selection.datum()
+            let data = selection.datum();
+            let chartWidth = width - margin.left - margin.right;
+            let chartHeight = height - margin.top - margin.bottom;
 
             // Building svg
 
             let svg = selection
                 .selectAll('svg')
                 .data([data])
-                .enter().append('svg')
+                .enter().append('svg');
 
             svg.append('g')
-                .attr('class', 'flower-chart')
+                .attr('class', 'flower-chart');
 
-            svg = svg.merge(svg)
+            svg = svg.merge(svg);
 
 
             // Defining margins for the chart
-            svg.attr('width', chartWidth + margin.left + margin.right)
-                .attr('height', chartHeight + margin.top + margin.bottom)
+            svg.attr('width', (d) => {
+                console.log(chartWidth + margin.left + margin.right);
+                return chartWidth + margin.left + margin.right
+            })
+                .attr('height', chartHeight + margin.top + margin.bottom);
 
 
             // flower chart core logic begins..
 
             let flowerChartRadius = Math.min(width, height) / 4;
-            let lengthOfInputData = data.length
+            let lengthOfInputData = data.length;
 
             svg.append("g").attr("class", "petal");
 
@@ -76,11 +67,11 @@
                 .outerRadius(flowerChartRadius * 0.8)
                 .innerRadius(10)
                 .cornerRadius(10)
-                .padRadius((flowerChartRadius * 0.8) / 2)
+                .padRadius((flowerChartRadius * 0.8) / 2);
 
             let invisibleOuterCircle = d3.arc()
                 .innerRadius(flowerChartRadius * 0.9)
-                .outerRadius(flowerChartRadius * 0.9)
+                .outerRadius(flowerChartRadius * 0.9);
 
 
             function customPie(data) {
@@ -92,11 +83,11 @@
 
             // Draw Flower Chart
 
-            drawFlowerChart(customPie(data))
+            drawFlowerChart(customPie(data));
 
             function drawFlowerChart(dataForPetalChart) {
-                drawPetals(dataForPetalChart)
-                drawPolyLine(dataForPetalChart)
+                drawPetals(dataForPetalChart);
+                drawPolyLine(dataForPetalChart);
                 drawLabels(dataForPetalChart)
             }
 
@@ -151,7 +142,13 @@
                     let pos = invisibleOuterCircle.centroid(d);
                     pos[0] = flowerChartRadius * (midAngle(d) < Math.PI ? 1 : -1);
                     return [flower.centroid(d), invisibleOuterCircle.centroid(d), pos];
-                })
+                });
+
+                // Adding css styles
+                polyline.style("opacity", 0.3)
+                    .attr("stroke", "grey")
+                    .attr("stroke-width", "2px")
+                    .attr("fill", "none")
             }
 
 
@@ -171,7 +168,7 @@
 
                 label.attr("transform", (d) => {
                     let pos = invisibleOuterCircle.centroid(d);
-                    decidingSide = (midAngle(d) < Math.PI ? 1 : -1)
+                    let decidingSide = (midAngle(d) < Math.PI ? 1 : -1);
                     pos[0] = ((flowerChartRadius) * 1.05 * decidingSide);
                     return "translate(" + pos + ")";
                 });
@@ -203,17 +200,25 @@
         return chart;
     }
 
-    var data = ['First Bucket', 'Second Bucket', 'Third Bucket', 'Fourth Bucket', 'Fifth Bucket']
-    var data2 = ['First Tub', 'Second Tub', 'Third Tub', 'Fourth Tub', 'Fifth Tub', 'Sixth Tub']
+    let data = ['First Bucket', 'Second Bucket', 'Third Bucket', 'Fourth Bucket', 'Fifth Bucket'];
+    let data2 = ['First Tub', 'Second Tub', 'Third Tub', 'Fourth Tub', 'Fifth Tub', 'Sixth Tub'];
 
 
-    let myFlowerChart = flowerChart().width(400).height(400).colorSchemeValue(0.3);
-    let myFlowerChart2 = flowerChart().width(500).height(500).colorScheme(d3.interpolateWarm).colorSchemeValue(0.5)
+    let myFlowerChart = flowerChart();
+
+    myFlowerChart.width(500)
+        .height(500)
+        .colorSchemeValue(0.3);
+
+    let myFlowerChart2 = flowerChart()
+        .width(500)
+        .height(500)
+        .colorScheme(d3.interpolateWarm).colorSchemeValue(0.5);
 
 
     d3.select('.start')
         .datum(data)
-        .call(myFlowerChart)
+        .call(myFlowerChart);
 
     d3.select('.start2')
         .datum(data2)
