@@ -1,0 +1,226 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+    <style>
+        polyline {
+            opacity: .3;
+            stroke: grey;
+            stroke-width: 2px;
+            fill: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="start">
+</div>
+<div class="start2"></div>
+
+
+<script src="node_modules/d3/dist/d3.js">
+</script>
+<script>
+
+
+    function flowerChart() {
+
+        let margin = {top: 20, right: 10, bottom: 20, left: 10};
+        let width = 1000;
+        let height = 1000;
+        let chartWidth = width - margin.left - margin.right
+        let chartHeight = height - margin.top - margin.bottom;
+        let colorScheme = d3.interpolatePuRd
+        let colorSchemeValue = 0.6
+
+
+        function chart(selection) {
+
+            let data = selection.datum()
+
+            // Building svg
+
+            let svg = selection
+                .selectAll('svg')
+                .data([data])
+                .enter().append('svg')
+
+            svg.append('g')
+                .attr('class', 'flower-chart')
+
+            svg = svg.merge(svg)
+
+
+            // Defining margins for the chart
+            svg.attr('width', chartWidth + margin.left + margin.right)
+                .attr('height', chartHeight + margin.top + margin.bottom)
+
+
+            // flower chart core logic begins..
+
+            let flowerChartRadius = Math.min(width, height) / 4;
+            let lengthOfInputData = data.length
+
+            svg.append("g").attr("class", "petal");
+
+            svg.append("g").attr("class", "labels");
+
+            svg.append("g").attr("class", "lines");
+
+            svg.selectAll('g').attr('transform', `translate(${width / 2},${(height) / 2})`);
+
+
+            let flower = d3.arc()
+                .outerRadius(flowerChartRadius * 0.8)
+                .innerRadius(10)
+                .cornerRadius(10)
+                .padRadius((flowerChartRadius * 0.8) / 2)
+
+            let invisibleOuterCircle = d3.arc()
+                .innerRadius(flowerChartRadius * 0.9)
+                .outerRadius(flowerChartRadius * 0.9)
+
+
+            function customPie(data) {
+                return d3.pie()
+                    .startAngle(() => 0)
+                    .endAngle(() => 2 * Math.PI)
+                    .padAngle(lengthOfInputData)(data)
+            }
+
+            // Draw Flower Chart
+
+            drawFlowerChart(customPie(data))
+
+            function drawFlowerChart(dataForPetalChart) {
+                drawPetals(dataForPetalChart)
+                drawPolyLine(dataForPetalChart)
+                drawLabels(dataForPetalChart)
+            }
+
+
+            //   creating petals ///
+
+            function drawPetals(dataForPetals) {
+
+                let petals = svg.select(".petal").selectAll("path")
+                    .data(dataForPetals)
+                    .join("path")
+                    .transition().delay(0.4 * (lengthOfInputData * 1000))
+                    .duration(1000)
+                    .ease(d3.easeLinear)
+                    .delay((d, i) => i * lengthOfInputData * 20).style("fill", colorScheme(colorSchemeValue))
+                    .attr("d", flower);
+
+                // adding stretching effect of each petal
+                petals.attrTween("d", (d) => {
+                    let start = {startAngle: 0, endAngle: 0};
+                    let interpolate = d3.interpolate(start, d);
+                    return (t) => flower(interpolate(t));
+                })
+
+
+            }
+
+
+            function midAngle(d) {
+                return d.startAngle + (d.endAngle - d.startAngle) / 2;
+            }
+
+            //   creating lines ///
+
+
+            function drawPolyLine(dataForPolyline) {
+                let polyline = svg.select(".lines").selectAll("polyline")
+                    .data(dataForPolyline)
+                    .join("polyline")
+                    .transition()  // Making the polyline to start triggering after the completion of sectors
+                    .delay(0.55 * (lengthOfInputData * 1000))
+                    .transition()
+                    .duration(1000);
+
+                // Triggering individual line
+
+                polyline.delay((d, i) => i * lengthOfInputData * 10);
+
+                // creating line by joining points from inner arc centroid to outer arc centroid
+
+                polyline.attr("points", (d) => {
+                    let pos = invisibleOuterCircle.centroid(d);
+                    pos[0] = flowerChartRadius * (midAngle(d) < Math.PI ? 1 : -1);
+                    return [flower.centroid(d), invisibleOuterCircle.centroid(d), pos];
+                })
+            }
+
+
+            //   creating labels ///
+
+            function drawLabels(dataForLabels) {
+
+                let label = svg.select(".labels").selectAll("text")
+                    .data(dataForLabels)
+                    .join('text').transition()
+                    .delay(0.8 * (lengthOfInputData * 1000))
+                    .attr("dy", `${lengthOfInputData * 0.015}em`)
+                    .text((d) => d.data)
+                    .transition().duration((d, i) => i * 0.2 * (lengthOfInputData * 100));
+
+                // Moving the label next to the created line
+
+                label.attr("transform", (d) => {
+                    let pos = invisibleOuterCircle.centroid(d);
+                    decidingSide = (midAngle(d) < Math.PI ? 1 : -1)
+                    pos[0] = ((flowerChartRadius) * 1.05 * decidingSide);
+                    return "translate(" + pos + ")";
+                });
+
+                // Aligning the label next to the created line
+                label.styleTween("text-anchor", (d) => {
+                    return (t) => midAngle(d) < Math.PI ? "start" : "end";
+                })
+            }
+
+        }
+
+        chart.width = function (_) {
+            return arguments.length ? ((width = _) , chart) : width;
+        };
+        chart.height = function (_) {
+            return arguments.length ? ((height = _) , chart) : height;
+        };
+        chart.margin = function (_) {
+            return arguments.length ? ((margin = _) , chart) : margin;
+        };
+        chart.colorScheme = function (_) {
+            return arguments.length ? ((colorScheme = _) , chart) : colorScheme;
+        };
+        chart.colorSchemeValue = function (_) {
+            return arguments.length ? ((colorSchemeValue = _) , chart) : colorSchemeValue;
+        };
+
+        return chart;
+    }
+
+    var data = ['First Bucket', 'Second Bucket', 'Third Bucket', 'Fourth Bucket', 'Fifth Bucket']
+    var data2 = ['First Tub', 'Second Tub', 'Third Tub', 'Fourth Tub', 'Fifth Tub', 'Sixth Tub']
+
+
+    let myFlowerChart = flowerChart().width(400).height(400).colorSchemeValue(0.3);
+    let myFlowerChart2 = flowerChart().width(500).height(500).colorScheme(d3.interpolateWarm).colorSchemeValue(0.5)
+
+
+    d3.select('.start')
+        .datum(data)
+        .call(myFlowerChart)
+
+    d3.select('.start2')
+        .datum(data2)
+        .call(myFlowerChart2)
+
+
+</script>
+</body>
+
+</html>
